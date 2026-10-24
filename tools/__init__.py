@@ -1,4 +1,5 @@
-"""Tool registry. To add a tool: subclass Tool in a new file, then add it to build_tools()."""
+
+"""Tool registry for the AgentX Smart Planner."""
 
 
 class Tool:
@@ -14,5 +15,15 @@ def build_tools():
     from tools.calculator import Calculator
     from tools.data_query import ListFiles, ReadFile, SqlQuery
     from tools.web_search import WebSearch
-    tools = [ListFiles(), ReadFile(), SqlQuery(), Calculator(), WebSearch()]
-    return {t.name: t for t in tools}
+    from tools.task_planner import TaskPlanner
+
+    tools = [
+        ListFiles(),
+        ReadFile(),
+        SqlQuery(),
+        Calculator(),
+        WebSearch(),
+        TaskPlanner(),
+    ]
+
+    return {tool.name: tool for tool in tools}
