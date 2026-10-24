@@ -1,88 +1,72 @@
 
-"""Analyze student performance from the challenge CSV dataset."""
+"""Analyze student scores grouped by topic."""
 
 import csv
+from collections import defaultdict
 
-from tools.data_query import _path
 from tools import Tool
+from tools.data_query import _path
 
 
 class StudentAnalyzer(Tool):
     name = "student_analyzer"
     description = (
-        "Analyze scores.csv to calculate a student's average score "
-        "and identify weaker subjects. Arguments: student_id."
+        "Analyze student performance by topic. "
+        "Arguments: student_id (for example S1)."
     )
     args_doc = '{"student_id": "S1"}'
 
     def execute(self, student_id="S1", **kwargs):
         try:
-            with open(_path("scores.csv"), newline="", encoding="utf-8-sig") as file:
-                rows = list(csv.DictReader(file))
-
-            if not rows:
-                return {"error": "scores.csv contains no records."}
-
-            columns = rows[0].keys()
-            id_column = next(
-                (c for c in columns if c.lower().strip() in
-                 ("student_id", "student", "studentid", "id")),
-                None,
-            )
-
-            if not id_column:
-                return {
-                    "error": "Could not identify the student ID column.",
-                    "available_columns": list(columns),
+            with open(
+                _path("scores.csv"),
+                newline="",
+                encoding="utf-8-sig",
+            ) as file:
+                reader = csv.DictReader(file)
+                headers = {
+                    name.strip().lower(): name for name in (reader.fieldnames or [])
                 }
 
-            student_rows = [
-                row for row in rows
-                if row.get(id_column, "").strip().lower()
-                == str(student_id).strip().lower()
-            ]
+                if not all(key in headers for key in ("student", "topic", "score")):
+                    return {
+                        "error": "Expected CSV columns: Student, Topic, Score."
+                    }
 
-            if not student_rows:
-                return {"error": f"No records found for student {student_id}."}
+                scores = defaultdict(list)
 
-            score_columns = [
-                c for c in columns
-                if c != id_column and any(
-                    word in c.lower()
-                    for word in ("score", "mark", "math", "science",
-                                 "english", "topic", "subject")
-                )
-            ]
+                for row in reader:
+                    if row[headers["student"]].strip().lower() != str(student_id).strip().lower():
+                        continue
 
-            scores = {}
-            for row in student_rows:
-                for column in score_columns:
+                    topic = row[headers["topic"]].strip()
                     try:
-                        value = float(row[column])
-                        scores.setdefault(column, []).append(value)
+                        score = float(row[headers["score"]])
                     except (ValueError, TypeError):
                         continue
 
+                    if topic:
+                        scores[topic].append(score)
+
             if not scores:
                 return {
-                    "error": "No numeric score columns detected.",
-                    "available_columns": list(columns),
+                    "error": f"No valid scores found for student {student_id}."
                 }
 
-            results = {
-                subject: round(sum(values) / len(values), 2)
-                for subject, values in scores.items() if values
+            averages = {
+                topic: round(sum(values) / len(values), 2)
+                for topic, values in scores.items()
             }
 
             return {
-                "student_id": student_id,
-                "subject_averages": results,
+                "student": student_id,
+                "topic_averages": averages,
                 "overall_average": round(
-                    sum(results.values()) / len(results), 2
+                    sum(averages.values()) / len(averages), 2
                 ),
-                "weakest_subjects": sorted(
-                    results, key=results.get
-                )[:min(3, len(results))],
+                "weakest_topics": sorted(
+                    averages, key=averages.get
+                )[:min(3, len(averages))],
             }
 
         except FileNotFoundError:
