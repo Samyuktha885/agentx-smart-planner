@@ -1,5 +1,5 @@
 
-"""Tool registry for the AgentX Smart Planner."""
+"""Tool registry for AgentX Smart Planner."""
 
 
 class Tool:
@@ -16,6 +16,7 @@ def build_tools():
     from tools.data_query import ListFiles, ReadFile, SqlQuery
     from tools.web_search import WebSearch
     from tools.task_planner import TaskPlanner
+    from tools.student_analyzer import StudentAnalyzer
 
     tools = [
         ListFiles(),
@@ -24,6 +25,7 @@ def build_tools():
         Calculator(),
         WebSearch(),
         TaskPlanner(),
+        StudentAnalyzer(),
     ]
 
     return {tool.name: tool for tool in tools}
